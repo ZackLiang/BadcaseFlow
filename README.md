@@ -139,6 +139,29 @@ bcf analyze-cases --workspace demo-agent --run runs/external-demo
 
 导入的 trace 需要包含最小字段：`trace_id`、`sample_id`、`workspace_id`、`steps`、`final_answer`。
 
+## 接自己的服务器或 AutoDL
+
+BadcaseFlow 本身先做控制层，训练可以发生在自己的 GPU 服务器、AutoDL 或其他远程环境。当前版本先提供 remote dry-run 计划，不会直接登录执行：
+
+```bash
+bcf init-workspace --workspace demo-agent
+bcf remote add --name autodl --host root@your-server --workdir /root/BadcaseFlow --python python
+bcf remote plan \
+  --target autodl \
+  --workspace demo-agent \
+  --run runs/demo \
+  --recipe examples/recipes/sft_llamafactory.example.yaml
+```
+
+这会生成：
+
+```text
+runs/demo/remote_plan_autodl.json
+runs/demo/remote_plan_autodl.ps1
+```
+
+plan 里包含远程目录创建、run 数据同步、recipe 同步、训练 dry-run 和产物回收命令。等 SSH key、AutoDL 地址和环境准备好以后，可以把这些 dry-run 命令逐步变成真实执行。
+
 ## 后续路线
 
 | 阶段 | 目标 | 重点能力 |

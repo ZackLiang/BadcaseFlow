@@ -84,6 +84,56 @@ class CliSmokeTest(unittest.TestCase):
             report = json.loads((run_dir / "case_report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["total_failed_cases"], 0)
 
+    def test_remote_plan_dry_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_dir = root / "runs" / "demo"
+            recipe = ROOT / "examples" / "recipes" / "sft_llamafactory.example.yaml"
+            self.assertEqual(main(["demo", "--run", str(run_dir)]), 0)
+            self.assertEqual(main(["init-workspace", "--workspace", "demo-agent", "--root", str(root)]), 0)
+            config = root / ".badcaseflow" / "remotes.json"
+            self.assertEqual(
+                main(
+                    [
+                        "remote",
+                        "add",
+                        "--name",
+                        "autodl",
+                        "--host",
+                        "root@example.autodl",
+                        "--workdir",
+                        "/root/BadcaseFlow",
+                        "--config",
+                        str(config),
+                    ]
+                ),
+                0,
+            )
+            output = run_dir / "remote_plan.json"
+            self.assertEqual(
+                main(
+                    [
+                        "remote",
+                        "plan",
+                        "--target",
+                        "autodl",
+                        "--workspace",
+                        "demo-agent",
+                        "--run",
+                        str(run_dir),
+                        "--recipe",
+                        str(recipe),
+                        "--config",
+                        str(config),
+                        "--output",
+                        str(output),
+                    ]
+                ),
+                0,
+            )
+            self.assertTrue(output.exists())
+            self.assertTrue(output.with_suffix(".ps1").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

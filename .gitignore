@@ -14,6 +14,7 @@ dist/
 build/
 
 # Local outputs
+.badcaseflow/
 runs/
 outputs/
 artifacts/

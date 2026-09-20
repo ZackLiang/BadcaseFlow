@@ -181,6 +181,38 @@ bcf promote dry-run --model artifacts/demo-agent/sft-v0.1 --eval-report runs/dem
 
 能解释一个模型为什么可以或不可以进入候选上线。
 
+### 第 5 周：远程训练 dry-run
+
+目标：让 BadcaseFlow 可以自然接到自己的服务器或 AutoDL。
+
+要做：
+
+- `bcf init-workspace`：生成本地 workspace 配置；
+- `bcf remote add`：登记远程目标；
+- `bcf remote list`：查看远程目标；
+- `bcf remote plan`：生成同步、训练和回收产物的 dry-run 命令；
+- 远程计划先输出 JSON 和 PowerShell 脚本；
+- 暂不直接执行 SSH 命令，避免一开始受网络、密钥、服务器环境影响。
+
+验收标准：
+
+```bash
+bcf init-workspace --workspace demo-agent
+bcf remote add --name autodl --host root@your-server --workdir /root/BadcaseFlow
+bcf remote plan \
+  --target autodl \
+  --workspace demo-agent \
+  --run runs/demo \
+  --recipe examples/recipes/sft_llamafactory.example.yaml
+```
+
+能生成：
+
+```text
+runs/demo/remote_plan_autodl.json
+runs/demo/remote_plan_autodl.ps1
+```
+
 ## 4. 第一版不要做什么
 
 暂时不要做：

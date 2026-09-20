@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -9,10 +10,12 @@ from .analyzer import analyze_cases, render_case_report_markdown
 from .evaluation import evaluate_traces
 from .exporters import export_preference, export_rl_prompts, export_sft
 from .io_utils import read_json, read_jsonl, write_jsonl
+from .remote import add_remote, build_remote_plan, list_remotes, render_plan_script
 from .recipes import build_train_dry_run, save_dry_run_manifest
 from .rollout import rollout_tasks
 from .schemas import validate_agent_trace, validate_task_sample
 from .store import LocalRunStore
+from .workspace import init_workspace, load_workspace, remotes_path
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -28,6 +31,16 @@ def main(argv: list[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="bcf", description="BadcaseFlow local CLI")
     sub = parser.add_subparsers(required=True)
+
+    init = sub.add_parser("init-workspace", help="create local BadcaseFlow workspace config")
+    init.add_argument("--workspace", required=True)
+    init.add_argument("--root", default=Path("."), type=Path)
+    init.add_argument("--force", action="store_true")
+    init.set_defaults(func=cmd_init_workspace)
+
+    doctor = sub.add_parser("doctor", help="check local development environment")
+    doctor.add_argument("--root", default=Path("."), type=Path)
+    doctor.set_defaults(func=cmd_doctor)
 
     ingest = sub.add_parser("ingest", help="import task samples into a run")
     ingest.add_argument("--workspace", required=True)
@@ -101,6 +114,30 @@ def build_parser() -> argparse.ArgumentParser:
     promote_dry.add_argument("--min-pass-rate", default=0.8, type=float)
     promote_dry.set_defaults(func=cmd_promote_dry_run)
 
+    remote = sub.add_parser("remote", help="remote server and AutoDL planning commands")
+    remote_sub = remote.add_subparsers(required=True)
+    remote_add = remote_sub.add_parser("add", help="register a remote target")
+    remote_add.add_argument("--name", required=True)
+    remote_add.add_argument("--host", required=True)
+    remote_add.add_argument("--workdir", required=True)
+    remote_add.add_argument("--port", default=22, type=int)
+    remote_add.add_argument("--python", default="python")
+    remote_add.add_argument("--config", default=Path(".badcaseflow/remotes.json"), type=Path)
+    remote_add.set_defaults(func=cmd_remote_add)
+
+    remote_list = remote_sub.add_parser("list", help="list remote targets")
+    remote_list.add_argument("--config", default=Path(".badcaseflow/remotes.json"), type=Path)
+    remote_list.set_defaults(func=cmd_remote_list)
+
+    remote_plan = remote_sub.add_parser("plan", help="write a remote dry-run plan")
+    remote_plan.add_argument("--target", required=True)
+    remote_plan.add_argument("--run", required=True, type=Path)
+    remote_plan.add_argument("--recipe", required=True, type=Path)
+    remote_plan.add_argument("--workspace", required=False)
+    remote_plan.add_argument("--config", default=Path(".badcaseflow/remotes.json"), type=Path)
+    remote_plan.add_argument("--output", required=False, type=Path)
+    remote_plan.set_defaults(func=cmd_remote_plan)
+
     demo = sub.add_parser("demo", help="run the complete local demo flow")
     demo.add_argument("--workspace", default="demo-agent")
     demo.add_argument("--run", default=Path("runs/demo"), type=Path)
@@ -111,6 +148,30 @@ def build_parser() -> argparse.ArgumentParser:
     demo.set_defaults(func=cmd_demo)
 
     return parser
+
+
+def cmd_init_workspace(args: argparse.Namespace) -> int:
+    workspace = init_workspace(args.root, args.workspace, force=args.force)
+    print(f"workspace={workspace['workspace_id']} config={args.root / '.badcaseflow' / 'workspace.json'}")
+    return 0
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    print(f"python={sys.version.split()[0]}")
+    print(f"root={args.root.resolve()}")
+    try:
+        workspace = load_workspace(args.root)
+        print(f"workspace={workspace.get('workspace_id')}")
+    except FileNotFoundError:
+        print("workspace=not-initialized")
+    for relative in (
+        "examples/datasets/seed_tasks.jsonl",
+        "examples/datasets/eval_tasks.jsonl",
+        "examples/recipes/sft_llamafactory.example.yaml",
+        "examples/recipes/opd_verl.example.yaml",
+    ):
+        print(f"{relative}={'ok' if (args.root / relative).exists() else 'missing'}")
+    return 0
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
@@ -276,6 +337,35 @@ def cmd_promote_dry_run(args: argparse.Namespace) -> int:
     decision = "approved" if pass_rate >= args.min_pass_rate and int(report.get("failed", 0)) == 0 else "blocked"
     print(f"model={args.model} decision={decision} pass_rate={pass_rate} min_pass_rate={args.min_pass_rate}")
     return 0 if decision == "approved" else 2
+
+
+def cmd_remote_add(args: argparse.Namespace) -> int:
+    remote = add_remote(args.config, args.name, args.host, args.workdir, port=args.port, python=args.python)
+    print(f"remote={args.name} host={remote['host']} workdir={remote['workdir']} config={args.config}")
+    return 0
+
+
+def cmd_remote_list(args: argparse.Namespace) -> int:
+    remotes = list_remotes(args.config)
+    if not remotes:
+        print("no remotes configured")
+        return 0
+    for name, remote in sorted(remotes.items()):
+        print(f"{name}\thost={remote['host']}\tport={remote.get('port', 22)}\tworkdir={remote['workdir']}")
+    return 0
+
+
+def cmd_remote_plan(args: argparse.Namespace) -> int:
+    plan = build_remote_plan(args.config, args.target, args.run, args.recipe, workspace=args.workspace)
+    output = args.output or (args.run / f"remote_plan_{args.target}.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(plan, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    script_path = output.with_suffix(".ps1")
+    script_path.write_text(render_plan_script(plan), encoding="utf-8", newline="\n")
+    print(f"remote_plan={output}")
+    print(f"script={script_path}")
+    print("next=" + plan["commands"]["prepare"][0])
+    return 0
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
