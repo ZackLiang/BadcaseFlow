@@ -1,0 +1,43 @@
+{
+  "tool_bundle_id": "demo-tools@v0.1",
+  "tools": [
+    {
+      "name": "calendar.search_slots",
+      "description": "Search available calendar slots. This mock tool never books meetings.",
+      "side_effect": "read_only",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "date": {"type": "string"},
+          "duration_minutes": {"type": "integer", "minimum": 15, "maximum": 240}
+        },
+        "required": ["date", "duration_minutes"]
+      }
+    },
+    {
+      "name": "calculator.evaluate",
+      "description": "Evaluate a simple arithmetic expression.",
+      "side_effect": "read_only",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "expression": {"type": "string"}
+        },
+        "required": ["expression"]
+      }
+    },
+    {
+      "name": "rag.search_policy",
+      "description": "Search a synthetic policy knowledge base.",
+      "side_effect": "read_only",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "top_k": {"type": "integer", "minimum": 1, "maximum": 10}
+        },
+        "required": ["query"]
+      }
+    }
+  ]
+}

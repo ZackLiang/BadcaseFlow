@@ -1,0 +1,37 @@
+# 示例：LLaMA-Factory LoRA SFT 训练 recipe。
+# 这个文件描述一组可复用的训练参数，适合先做 dry-run 验证。
+recipe_id: sft.llamafactory.lora.demo-v0.1
+backend: llamafactory
+mode: dry_run
+
+# 基座模型配置。真实训练时可以替换为本地模型目录或公开模型 ID。
+model:
+  base_model: Qwen/Qwen3-0.6B
+  finetuning_type: lora
+  template: qwen3
+
+# 数据集由平台的 dataset version 解析到具体文件。
+data:
+  dataset_version: demo-agent-sft@v0.1
+  train_file: runs/demo/sft.jsonl
+  format: sharegpt
+  cutoff_len: 2048
+  val_size: 0.1
+
+# 第一版默认使用保守的小参数，方便先做数据协议和训练命令验证。
+training:
+  stage: sft
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 0.0001
+  num_train_epochs: 3
+  bf16: true
+  logging_steps: 10
+  save_steps: 100
+
+# artifact 统一交给平台登记，后续可接本地目录、MinIO 或 S3。
+outputs:
+  output_dir: artifacts/demo-agent/sft-v0.1
+  metrics:
+    - tensorboard
+    - mlflow

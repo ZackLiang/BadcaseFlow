@@ -1,0 +1,51 @@
+# 示例：verl OPD 训练 recipe。
+# 这个文件表达 student / teacher 资源拆分和 OPD 参数，可由不同 launcher adapter 执行。
+recipe_id: opd.verl.demo-v0.1
+backend: verl
+mode: dry_run
+
+# student 是被训练的目标模型。
+student:
+  model: Qwen/Qwen3-0.6B
+  resource_pool: student_pool
+  gpus: 1
+
+# teacher 提供 token-level supervision，默认和 student 使用同系列 tokenizer。
+teacher:
+  model: Qwen/Qwen3-1.7B
+  resource_pool: teacher_pool
+  gpus: 1
+
+# 第一版使用短 prompt/response，优先保证 smoke 能跑通。
+data:
+  train_file: runs/demo/opd_train.parquet
+  val_file: runs/demo/opd_val.parquet
+  max_prompt_length: 256
+  max_response_length: 96
+
+# use_task_rewards=false 表示先验证 OPD loss 链路，再接真实 reward。
+distillation:
+  enabled: true
+  loss_mode: k1
+  use_policy_gradient: true
+  use_task_rewards: false
+
+# rollout 引擎默认 vLLM，后续可替换为 SGLang 或框架内置推理。
+rollout:
+  engine: vllm
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.3
+
+# 指标先输出到 console 和 TensorBoard，平台登记日志目录。
+training:
+  total_epochs: 1
+  train_batch_size: 4
+  ppo_mini_batch_size: 4
+  logger:
+    - console
+    - tensorboard
+
+# checkpoint、TensorBoard 和训练日志都作为 artifact 进入模型注册表。
+outputs:
+  output_dir: artifacts/demo-agent/opd-v0.1
+  tensorboard_dir: runs/demo/tensorboard/opd-v0.1
