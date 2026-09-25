@@ -1,0 +1,30 @@
+# 示例：verl SFT recipe。verl 的 SFT 通常使用 parquet 数据。
+recipe_id: sft.verl.demo-v0.1
+backend: verl
+stage: sft
+mode: dry_run
+
+model:
+  base_model: Qwen/Qwen3-0.6B
+
+data:
+  dataset_version: demo-agent-sft-parquet@v0.1
+  train_file: runs/demo/sft_train.parquet
+  val_file: runs/demo/sft_val.parquet
+  max_length: 2048
+
+training:
+  project_name: badcaseflow-demo
+  experiment_name: verl-sft-demo-v0.1
+  total_epochs: 1
+  train_batch_size: 8
+  micro_batch_size_per_gpu: 1
+  logger:
+    - console
+    - tensorboard
+  save_freq: 100
+  test_freq: 50
+
+outputs:
+  output_dir: artifacts/demo-agent/verl-sft-v0.1
+  tensorboard_dir: runs/demo/tensorboard/verl-sft-v0.1

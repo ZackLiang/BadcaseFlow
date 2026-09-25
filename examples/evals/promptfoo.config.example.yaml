@@ -1,0 +1,11 @@
+description: BadcaseFlow promptfoo demo
+prompts:
+  - "{{query}}"
+providers:
+  - id: echo
+tests:
+  - vars:
+      query: "请说明一次工具调用失败应该如何进入下一轮评测。"
+    assert:
+      - type: contains
+        value: "评测"

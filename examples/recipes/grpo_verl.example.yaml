@@ -1,0 +1,38 @@
+# 示例：verl GRPO recipe，适合把 badcase 生成的 RL prompt 接到规则 reward 或模型 reward。
+recipe_id: grpo.verl.demo-v0.1
+backend: verl
+stage: grpo
+mode: dry_run
+
+model:
+  base_model: Qwen/Qwen3-0.6B
+
+data:
+  dataset_version: demo-agent-rl-prompt@v0.1
+  train_file: runs/demo/rl_train.parquet
+  val_file: runs/demo/rl_val.parquet
+  max_prompt_length: 512
+  max_response_length: 512
+
+rollout:
+  engine: vllm
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.3
+  n: 4
+
+training:
+  project_name: badcaseflow-demo
+  experiment_name: grpo-demo-v0.1
+  total_epochs: 1
+  train_batch_size: 16
+  ppo_mini_batch_size: 8
+  learning_rate: 0.000001
+  logger:
+    - console
+    - tensorboard
+  save_freq: 100
+  test_freq: 20
+
+outputs:
+  output_dir: artifacts/demo-agent/grpo-v0.1
+  tensorboard_dir: runs/demo/tensorboard/grpo-v0.1

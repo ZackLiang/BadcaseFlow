@@ -1,0 +1,44 @@
+# GSM8K + verl GRPO 示例。
+# 先运行：bcf data prepare-gsm8k --input examples/datasets/gsm8k_tiny.jsonl --output-dir runs/gsm8k --parquet
+recipe_id: gsm8k.grpo.verl.v0.1
+backend: verl
+stage: grpo
+mode: dry_run
+
+model:
+  base_model: Qwen/Qwen2.5-0.5B-Instruct
+
+data:
+  dataset_version: gsm8k-verl-parquet@v0.1
+  train_file: runs/gsm8k/verl_train.parquet
+  val_file: runs/gsm8k/verl_val.parquet
+  max_prompt_length: 512
+  max_response_length: 512
+
+algorithm:
+  adv_estimator: grpo
+
+rollout:
+  engine: vllm
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.35
+  n: 4
+
+training:
+  project_name: badcaseflow-gsm8k
+  experiment_name: gsm8k-grpo-v0.1
+  total_epochs: 1
+  train_batch_size: 16
+  ppo_mini_batch_size: 8
+  learning_rate: 0.000001
+  n_gpus_per_node: 1
+  nnodes: 1
+  logger:
+    - console
+    - tensorboard
+  save_freq: 100
+  test_freq: 20
+
+outputs:
+  output_dir: artifacts/gsm8k-agent/grpo-v0.1
+  tensorboard_dir: runs/gsm8k/tensorboard/grpo-v0.1

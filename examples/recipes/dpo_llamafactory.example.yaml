@@ -1,0 +1,34 @@
+# 示例：LLaMA-Factory LoRA DPO recipe。
+recipe_id: dpo.llamafactory.lora.demo-v0.1
+backend: llamafactory
+stage: dpo
+mode: dry_run
+
+model:
+  base_model: Qwen/Qwen3-0.6B
+  finetuning_type: lora
+  template: qwen3
+
+data:
+  dataset_version: demo-agent-preference@v0.1
+  train_file: runs/demo/preference.jsonl
+  format: preference
+  cutoff_len: 2048
+  val_size: 0.1
+
+training:
+  pref_beta: 0.1
+  pref_loss: sigmoid
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 0.000005
+  num_train_epochs: 2
+  bf16: true
+  logging_steps: 10
+  save_steps: 100
+
+outputs:
+  output_dir: artifacts/demo-agent/dpo-v0.1
+  metrics:
+    - tensorboard
+    - swanlab

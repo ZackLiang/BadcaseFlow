@@ -197,9 +197,9 @@ BadcaseFlow 是一个开源 Agent 受控自进化平台，把 trace、评测、S
 
 建议 README 首屏使用版本 A，项目介绍和演示视频使用版本 B。
 
-## 7. MVP 应该如何因此裁剪
+## 7. 首版应该如何因此裁剪
 
-如果首选用户是 Agent / 后训练工程团队，v0.1 不必先做复杂权限、多租户和漂亮 UI，应该优先做：
+如果首选用户是 Agent / 后训练工程团队，首版不必先做复杂权限、多租户和漂亮 UI，应该优先做：
 
 1. 统一数据协议；
 2. trace 到 eval 到 SFT export 的闭环；
@@ -219,14 +219,14 @@ BadcaseFlow 是一个开源 Agent 受控自进化平台，把 trace、评测、S
 
 1. 我们第一批真实用户更像“后训练工程师”，还是“Agent 应用负责人”？
 2. 第一版 demo 是办公工具 Agent，还是 RAG/合规类 Agent？
-3. 用户最想看到的是训练效果提升，还是 case 分析和数据闭环？
-4. 训练后端第一优先级是 LLaMA-Factory SFT/DPO，还是 verl OPD/GRPO？
-5. 平台先做 CLI，本地 Web，还是直接 Web 工作台？
+3. 用户最想先在 Web 里看到 case board，还是训练/评测 run 管理？
+4. 训练执行层下一步优先支持 SSH、Ray、Kubernetes 还是 Slurm？
+5. trace 回流优先接 Langfuse、Phoenix 还是 OpenTelemetry？
 
 我的默认建议：
 
 ```text
-先选“后训练工程师 + 工具调用型 Agent + 本地 CLI 闭环 + LLaMA-Factory SFT/DPO + verl OPD dry-run”。
+先选“后训练工程师 + 工具调用型 Agent + 本地 CLI 闭环 + adapter 生态 + 可追踪 registry”。
 ```
 
-这个组合最容易做出可信 MVP，也最容易从你已有的项目经验自然延展。
+这个组合最容易形成可信首版，也最容易从你已有的项目经验自然延展。

@@ -1,0 +1,31 @@
+# 示例：LLaMA-Factory KTO recipe，用正负反馈样本做偏好优化。
+recipe_id: kto.llamafactory.lora.demo-v0.1
+backend: llamafactory
+stage: kto
+mode: dry_run
+
+model:
+  base_model: Qwen/Qwen3-0.6B
+  finetuning_type: lora
+  template: qwen3
+
+data:
+  dataset_version: demo-agent-feedback@v0.1
+  train_file: runs/demo/feedback.jsonl
+  format: kto
+  cutoff_len: 2048
+
+training:
+  pref_beta: 0.1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 0.000005
+  num_train_epochs: 2
+  bf16: true
+  logging_steps: 10
+  save_steps: 100
+
+outputs:
+  output_dir: artifacts/demo-agent/kto-v0.1
+  metrics:
+    - tensorboard

@@ -7,6 +7,7 @@ REQUIRED_TASK_FIELDS = {"sample_id", "workspace_id", "input", "expected"}
 REQUIRED_TRACE_FIELDS = {"trace_id", "sample_id", "workspace_id", "steps", "final_answer"}
 
 
+# schema 校验保持轻量，只检查平台必须依赖的字段；业务规则交给 eval suite。
 def validate_task_sample(record: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     missing = sorted(REQUIRED_TASK_FIELDS - set(record))

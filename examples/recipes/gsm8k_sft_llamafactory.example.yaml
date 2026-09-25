@@ -1,0 +1,35 @@
+# GSM8K + LLaMA-Factory SFT 示例。
+# 先运行：
+# python -m badcaseflow data prepare-gsm8k \
+#   --input examples/datasets/gsm8k_tiny.jsonl \
+#   --output-dir runs/gsm8k
+#
+# 这个文件使用 LLaMA-Factory 原生 YAML 字段，可以直接交给：
+# llamafactory-cli train examples/recipes/gsm8k_sft_llamafactory.example.yaml
+recipe_id: gsm8k.sft.llamafactory.v0.1
+backend: llamafactory
+stage: sft
+mode: dry_run
+
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+template: qwen
+finetuning_type: lora
+lora_target: all
+
+dataset_dir: runs/gsm8k
+dataset: gsm8k_sft
+cutoff_len: 2048
+val_size: 0.05
+
+output_dir: artifacts/gsm8k-agent/sft-v0.1
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 0.0001
+num_train_epochs: 1
+bf16: true
+logging_steps: 10
+save_steps: 100
+evaluation_strategy: steps
+eval_steps: 50
+report_to:
+  - tensorboard

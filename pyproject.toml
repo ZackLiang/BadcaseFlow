@@ -1,22 +1,51 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "wheel>=0.40"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "badcaseflow"
 version = "0.1.0"
-description = "Controlled self-evolution workflow for agent badcases, evals, and post-training."
+description = "An open-source control layer for agent data, evaluation, post-training, and iterative improvement."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [
   {name = "BadcaseFlow Contributors"}
 ]
-dependencies = []
+keywords = [
+  "agent",
+  "evaluation",
+  "post-training",
+  "rlhf",
+  "llmops",
+  "flywheel"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+parquet = [
+  "pyarrow>=14.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/ZackLiang/BadcaseFlow"
+Repository = "https://github.com/ZackLiang/BadcaseFlow"
+Issues = "https://github.com/ZackLiang/BadcaseFlow/issues"
 
 [project.scripts]
 bcf = "badcaseflow.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

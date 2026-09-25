@@ -15,6 +15,7 @@ def init_workspace(root: Path, workspace_id: str, force: bool = False) -> dict[s
     config_dir.mkdir(parents=True, exist_ok=True)
     workspace_path = config_dir / "workspace.json"
     remotes_path = config_dir / "remotes.json"
+    registry_path = config_dir / "registry.json"
     if workspace_path.exists() and not force:
         raise FileExistsError(f"workspace config already exists: {workspace_path}")
     workspace = {
@@ -32,6 +33,20 @@ def init_workspace(root: Path, workspace_id: str, force: bool = False) -> dict[s
     write_json(workspace_path, workspace)
     if not remotes_path.exists():
         write_json(remotes_path, {"remotes": {}})
+    if not registry_path.exists():
+        now = datetime.now(timezone.utc).isoformat()
+        write_json(
+            registry_path,
+            {
+                "version": 1,
+                "created_at": now,
+                "updated_at": now,
+                "artifacts": [],
+                "models": [],
+                "evaluations": [],
+                "promotions": [],
+            },
+        )
     return workspace
 
 
@@ -44,4 +59,3 @@ def load_workspace(root: Path) -> dict[str, Any]:
 
 def remotes_path(root: Path) -> Path:
     return root / DEFAULT_CONFIG_DIR / "remotes.json"
-

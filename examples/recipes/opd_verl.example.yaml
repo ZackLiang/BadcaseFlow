@@ -2,6 +2,7 @@
 # 这个文件表达 student / teacher 资源拆分和 OPD 参数，可由不同 launcher adapter 执行。
 recipe_id: opd.verl.demo-v0.1
 backend: verl
+stage: opd
 mode: dry_run
 
 # student 是被训练的目标模型。
@@ -15,6 +16,8 @@ teacher:
   model: Qwen/Qwen3-1.7B
   resource_pool: teacher_pool
   gpus: 1
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.3
 
 # 第一版使用短 prompt/response，优先保证 smoke 能跑通。
 data:
@@ -38,6 +41,8 @@ rollout:
 
 # 指标先输出到 console 和 TensorBoard，平台登记日志目录。
 training:
+  project_name: badcaseflow-demo
+  experiment_name: opd-demo-v0.1
   total_epochs: 1
   train_batch_size: 4
   ppo_mini_batch_size: 4

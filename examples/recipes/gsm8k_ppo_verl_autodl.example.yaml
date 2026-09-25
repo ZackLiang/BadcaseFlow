@@ -1,0 +1,44 @@
+# AutoDL 上跑 GSM8K + verl PPO 的示例。
+# 数据路径对齐 verl 官方 GSM8K 预处理脚本输出。
+recipe_id: gsm8k.ppo.verl.autodl.v0.1
+backend: verl
+stage: ppo
+mode: dry_run
+
+launcher:
+  python: python
+
+model:
+  base_model: Qwen/Qwen2.5-0.5B-Instruct
+
+data:
+  dataset_version: gsm8k-verl-official@v0.1
+  train_file: /root/data/gsm8k/train.parquet
+  val_file: /root/data/gsm8k/test.parquet
+  max_prompt_length: 512
+  max_response_length: 512
+
+rollout:
+  engine: vllm
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.4
+  n: 4
+
+training:
+  project_name: badcaseflow-gsm8k
+  experiment_name: gsm8k-ppo-autodl-v0.1
+  total_epochs: 1
+  train_batch_size: 64
+  ppo_mini_batch_size: 16
+  learning_rate: 0.000001
+  n_gpus_per_node: 1
+  nnodes: 1
+  logger:
+    - console
+    - tensorboard
+  save_freq: 100
+  test_freq: 20
+
+outputs:
+  output_dir: /root/BadcaseFlow/artifacts/gsm8k-agent/ppo-v0.1
+  tensorboard_dir: /root/BadcaseFlow/runs/gsm8k/tensorboard/ppo-v0.1

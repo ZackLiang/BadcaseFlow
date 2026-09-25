@@ -65,7 +65,7 @@ Workspace 是项目级隔离单元。一个 workspace 包含：
 - datasets：seed、trace、SFT、preference、RL prompt、eval set；
 - eval suites：评测集、judge 配置、指标口径、通过门槛；
 - train recipes：SFT、DPO、GRPO、PPO、OPD 等训练模板；
-- model registry：checkpoint、adapter、merge 产物、部署记录；
+- model registry：checkpoint、adapter、merge 产物、评测记录、门禁决策和部署记录；
 - case board：badcase、聚类、归因、处理动作和状态。
 
 ### 4.2 Data Factory
@@ -82,6 +82,8 @@ Data Factory 负责生产可训练、可评测、可回放的数据。
 - quality gate：schema 检查、工具参数检查、reward/judge/human gate；
 - projection：投影为 SFT、preference、RL prompt、OPD 数据格式；
 - lineage：记录来源、版本、prompt hash、工具版本、reward 版本。
+
+当前 CLI 版本已经落地 `dataset_version`：对 `task`、`trace`、`eval_suite`、`sft`、`preference`、`rl_prompt`、`eval_result` 和 `eval_report` 计算记录数、字节数、`sha256`、schema 状态和版本 ID。`round` 运行时会自动写出 `data_run/dataset_versions.json`，并在注册候选模型时把这些数据版本同步到本地 registry。训练和评测 dry-run 也可以通过 `--registry-root` 把 recipe 里的 dataset version 解析成实际路径。
 
 核心原则：低分样本不能直接进入训练集。它应该先进入 badcase 池，被归因后生成新的训练任务或评测任务。
 
@@ -101,6 +103,23 @@ Data Factory 负责生产可训练、可评测、可回放的数据。
 
 评测结果需要保留样本级明细，不能只有平均分。case analyzer 依赖样本级失败原因。
 
+当前 CLI 版本的评测后端通过 `evals` adapter 接入：
+
+- builtin：使用 BadcaseFlow 内置规则评测 Agent trace；
+- command：包装任意评测命令，统一记录 stdout/stderr、events、metrics 和 status；
+- promptfoo：把 promptfoo 配置转成 eval 命令；
+- OpenCompass：把 benchmark 配置转成 OpenCompass 命令；
+- LightEval：把任务和 model args 转成 LightEval 命令。
+
+每次 eval run 产出：
+
+- `manifest.json` / `status.json`：评测配置、执行方式、gate 和最终状态；
+- `events.jsonl`：执行事件和日志行；
+- `metrics.jsonl`：从日志或报告抽取的指标；
+- `eval_report.json` / `eval_results.jsonl`：内置规则评测的报告和样本级结果；
+- `quality_status`：按 `min_pass_rate` 和失败样本数得到的 gate 状态；
+- registry linkage：可索引 eval run 产物，并把 eval run 直接绑定到候选模型形成 promotion decision。
+
 ### 4.4 Training Factory
 
 Training Factory 不重新实现所有训练框架，而是做统一编排和适配。
@@ -115,12 +134,24 @@ Training Factory 不重新实现所有训练框架，而是做统一编排和适
 训练平台能力：
 
 - recipe registry：训练配置模板、变量、默认资源；
-- data resolver：按 dataset version 解析训练输入；
+- data resolver：按 dataset version 解析训练和评测输入，解析结果写入 dry-run manifest；
 - preflight：检查数据 schema、tokenizer、模型路径、显存预算；
 - launcher：本地、SSH、Slurm、Kubernetes、Ray job 适配；
+- local harness：所有真实训练命令先经过统一执行层，记录 stdout/stderr、events、metrics、diagnosis、artifact manifest、status、退出码和耗时；
 - metrics：TensorBoard、MLflow、console log、W&B/SwanLab 可选；
 - artifact sync：checkpoint、adapter、merged model、训练日志归档；
+- artifact registry：把 train run 产物登记为可查询索引；
+- model registry：把训练产物注册为候选模型，记录来源、指标和后续评测/上线状态；
+- evaluation registry：把候选模型绑定到 eval report，保留总量、通过数、失败数、通过率和失败分桶；
+- promotion registry：按通过率阈值和失败样本数生成 `approved` / `blocked` decision，并把原因写回模型谱系；
 - failure capture：OOM、依赖不兼容、Ray resource mismatch、数据格式错误自动归因。
+
+当前 CLI 已落地 launcher plan：
+
+- local launcher：为 train/eval recipe 生成本地启动命令；
+- SSH launcher：读取 `.badcaseflow/remotes.json`，生成 prepare、sync、run、collect 四组命令；
+- mode：支持 `dry-run`、`plan`、`run` 三种执行意图；
+- 输出：`launch_plan.json` 和可审查的 PowerShell 脚本。
 
 训练类型与输入输出：
 
@@ -166,6 +197,8 @@ Case Analyzer 是飞轮的核心。它把失败样本转成下一轮行动，而
 - serving 使用 OpenAI-compatible API，默认支持 vLLM/SGLang；
 - 支持 canary、A/B、回滚和 shadow evaluation；
 - 线上 trace 按采样策略进入 Data Factory。
+
+当前 CLI 版本已经提供 deployment plan：对通过门禁的候选模型生成 vLLM/SGLang/OpenAI-compatible 服务 runbook，记录 canary 比例、健康检查、回滚动作和服务命令，并可登记到 registry 的 deployment 血缘中。它默认只生成计划和脚本，实际服务启动与流量切换由用户确认后执行。
 
 ## 5. 数据契约
 
@@ -326,6 +359,16 @@ case_analysis
 recommended_actions
 promotion_decision
 ```
+
+当前 CLI 版本已经把 `FlywheelRound` 落成本地 manifest：
+
+- `round.json`：记录 workspace、状态、质量状态、阶段列表、artifact 索引和摘要指标；
+- `events.jsonl`：记录 round started/finished、stage started/finished 等事件；
+- `iteration_plan.json` / `iteration_plan.md`：把失败样本和门禁结果转成下一轮 proposed actions；
+- `data_run/`：保存任务、trace、eval report、case report、SFT/preference/RL prompt 导出和数据版本清单；
+- `train_runs/`：保存本轮可选训练 run 的 manifest、status、events、metrics 和 diagnosis；
+- `eval_runs/`：保存可选候选模型回评测 run，支持把回评测结果接入 promotion gate；
+- registry linkage：可把数据版本、训练产物、候选模型、评测报告和 promotion decision 放在同一个血缘索引中。
 
 ## 9. 开源实现路线
 

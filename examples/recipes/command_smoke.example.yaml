@@ -1,0 +1,16 @@
+# 示例：本地训练 harness smoke recipe。
+# 这个 recipe 不训练模型，只用于验证 train run 的日志、事件和状态落盘是否正常。
+recipe_id: command.smoke.demo-v0.1
+backend: command
+stage: custom
+mode: smoke
+
+command:
+  - python
+  - -c
+  - "import sys; print('badcaseflow train harness ok'); sys.stderr.write('metric: loss=0.0\\n')"
+
+outputs:
+  output_dir: artifacts/demo-agent/command-smoke-v0.1
+  metrics:
+    - console

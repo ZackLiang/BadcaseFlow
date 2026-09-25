@@ -1,0 +1,20 @@
+# 示例：本地评测 harness smoke recipe。
+# 这个 recipe 不依赖外部评测框架，只用于验证 eval run 的日志、指标和状态落盘。
+recipe_id: command.eval.smoke.demo-v0.1
+backend: command
+stage: custom
+mode: smoke
+
+command:
+  - python
+  - -c
+  - "print('metric: pass_rate=1.0 failed=0 total=1 passed=1')"
+
+outputs:
+  output_dir: runs/eval_runs/command-eval-smoke-v0.1
+  metrics:
+    - console
+
+gate:
+  min_pass_rate: 0.8
+  allow_failed_cases: false

@@ -7,6 +7,7 @@ from typing import Any
 from .io_utils import read_json, read_jsonl, write_json, write_jsonl
 
 
+# LocalRunStore 让每个命令都产出可独立复制、检查和归档的 run 目录。
 class LocalRunStore:
     def __init__(self, run_dir: Path):
         self.run_dir = run_dir
@@ -61,4 +62,3 @@ class LocalRunStore:
         write_json(path, report)
         self.update_artifact(artifact_key, filename)
         return path
-

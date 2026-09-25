@@ -2,6 +2,7 @@
 # 这个文件描述一组可复用的训练参数，适合先做 dry-run 验证。
 recipe_id: sft.llamafactory.lora.demo-v0.1
 backend: llamafactory
+stage: sft
 mode: dry_run
 
 # 基座模型配置。真实训练时可以替换为本地模型目录或公开模型 ID。

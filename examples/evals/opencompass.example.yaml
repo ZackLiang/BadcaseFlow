@@ -1,0 +1,14 @@
+# 示例：OpenCompass benchmark dry-run recipe。
+recipe_id: opencompass.demo-v0.1
+backend: opencompass
+stage: benchmark
+
+data:
+  config: examples/evals/opencompass.config.example.py
+
+outputs:
+  output_dir: runs/eval_runs/opencompass-demo-v0.1
+
+gate:
+  min_pass_rate: 0.8
+  allow_failed_cases: false

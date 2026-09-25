@@ -9,6 +9,7 @@ from .io_utils import read_json, write_json
 from .recipes import build_train_dry_run
 
 
+# remote 配置只记录连接和目录信息，真正的执行仍由生成的计划或 job 负责。
 def add_remote(
     config_path: Path,
     name: str,
@@ -115,4 +116,3 @@ def _load_remote_config(config_path: Path) -> dict[str, Any]:
     if not config_path.exists():
         return {"remotes": {}}
     return read_json(config_path)
-

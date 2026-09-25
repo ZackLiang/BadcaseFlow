@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+# mock rollout 用确定性输出演示 trace 协议和失败 case 流程，不代表真实模型能力。
 def rollout_tasks(tasks: list[dict[str, Any]], agent: str = "mock") -> list[dict[str, Any]]:
     if agent not in {"mock", "mock-buggy"}:
         raise ValueError("only mock and mock-buggy agents are available in v0.1")
@@ -82,4 +83,3 @@ def _tool_step(tool_name: str, arguments: dict[str, Any], observation: dict[str,
         "validation": {"schema": "passed", "policy": "passed"},
         "observation": observation,
     }
-

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
+from badcaseflow import __version__
 from badcaseflow.cli import main
 
 
@@ -12,6 +15,58 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CliSmokeTest(unittest.TestCase):
+    def test_version_command(self) -> None:
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["version"])
+        self.assertEqual(code, 0)
+        self.assertIn(f"badcaseflow={__version__}", output.getvalue())
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["version", "--json"])
+        self.assertEqual(code, 0)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["name"], "badcaseflow")
+        self.assertEqual(payload["version"], __version__)
+
+    def test_doctor_reports_repo_readiness(self) -> None:
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["doctor", "--root", str(ROOT)])
+        self.assertEqual(code, 0)
+        text = output.getvalue()
+        self.assertIn("status=ok", text)
+        self.assertIn("training_adapters=", text)
+        self.assertIn("eval_adapters=", text)
+        self.assertIn("README.md=ok", text)
+        self.assertIn("CHANGELOG.md=ok", text)
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["doctor", "--root", str(ROOT), "--json"])
+        self.assertEqual(code, 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "ok")
+        self.assertEqual(report["badcaseflow_version"], __version__)
+        self.assertGreaterEqual(report["training_adapters"], 2)
+        self.assertGreaterEqual(report["eval_adapters"], 2)
+
+    def test_doctor_strict_fails_when_release_files_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main(["doctor", "--root", tmp, "--json"])
+            self.assertEqual(code, 0)
+            report = json.loads(output.getvalue())
+            self.assertEqual(report["status"], "warning")
+            self.assertIn("README.md", report["missing"])
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main(["doctor", "--root", tmp, "--strict"])
+            self.assertEqual(code, 2)
+
     def test_local_badcase_flow(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "runs" / "demo"
